@@ -1,0 +1,28 @@
+Package: DEXSeqAlt
+Version: 0.0.100
+Title: Implementing DEXSeq testing without sharing information across exons
+Author: Alejandro Reyes <alejandro.reyes.ds@gmail.com>
+Maintainer: Alejandro Reyes <alejandro.reyes.ds@gmail.com>
+Imports:
+    statmod
+Depends:
+    BiocParallel,
+    SummarizedExperiment,
+    GenomicRanges (>= 1.23.7),
+    DEXSeq, 
+    pasilla,
+    methods
+Suggests:
+    BiocStyle,
+    knitr
+Enhances: 
+Description: This package implements DEXSeq testing without information sharing
+    across exons. This is useful for decreasing running times when having large
+    datasets.
+License: GPL (>= 3)
+URL: 
+biocViews: Sequencing, RNASeq, DifferentialExpression, AlternativeSplicing,
+    DifferentialSplicing, GeneExpression, Visualization
+Packaged: 2014-03-21 08:48:43 UTC; alejandro
+VignetteBuilder: knitr
+RoxygenNote: 5.0.1
