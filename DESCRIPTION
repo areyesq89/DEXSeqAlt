@@ -1,5 +1,5 @@
 Package: DEXSeqAlt
-Version: 0.0.100
+Version: 0.0.101
 Title: Implementing DEXSeq testing without sharing information across exons
 Author: Alejandro Reyes <alejandro.reyes.ds@gmail.com>
 Maintainer: Alejandro Reyes <alejandro.reyes.ds@gmail.com>

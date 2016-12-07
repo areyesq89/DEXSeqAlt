@@ -113,7 +113,7 @@ estimateDispersionsAlt <- function( dxd, BPPARAM = SerialParam(), verbose=TRUE )
         model.matrix( design(dxd), colData(dxd) ) )
     thisExons <- colData(dxd)$exon == "this"
     countMatrix <- counts(dxd)
-    enoughCounts <- rowSums( countMatrix[,thisExons] ) > 0 | rowSums( countMatrix[,!thisExons] > 0 )
+    enoughCounts <- rowSums( countMatrix[,thisExons] ) > 0 & rowSums( countMatrix[,!thisExons] ) > 0 
     multiExonicGenes <- names( which( table(mcols(dxd)$groupID) > 1 ) )
     testableVector <- enoughCounts & mcols(dxd)$groupID %in% multiExonicGenes
     mcols( dxd )$allZero <- !testableVector
