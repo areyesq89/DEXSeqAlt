@@ -129,7 +129,9 @@ estimateDispersionsAlt <- function( dxd, BPPARAM = SerialParam(), verbose=TRUE )
                 cat(sprintf("fitting %s\n", ex))
             }
             counts <- as.numeric(x[ex,])
-            dp <- try( estimateDispersionForExon( mmZ, counts, sizeFactorsZ) )
+            options(warn=2)
+            dp <- try( estimateDispersionForExon( mmZ, counts, sizeFactorsZ), silent=TRUE )
+            options(warn=0)
             if( !inherits( dp, "try-error" ) ){
                dp
             }else{
@@ -195,8 +197,10 @@ testForDEUAlt <- function( dxd, reducedModel, fullModel, BPPARAM=SerialParam(), 
             counts <- as.numeric( mat[x,] )
             disps <- rep( rawDispsZ[xi], length(counts) ) 
             sf <- modelFrameZ$sizeFactor
+            options(warn=2)
             fitNull <- try( glmnb.fit( X=mmNullZ, y=counts, dispersion=disps, offset=log( sf ) ), silent=TRUE )
             fitFull <- try( glmnb.fit( X=mmFullZ, y=counts, dispersion=disps, offset=log( sf ) ), silent=TRUE )
+            options(warn=0)
             if( inherits( fitNull, "try-error") | inherits( fitFull, "try-error") ){
                 return(NA)
             }
