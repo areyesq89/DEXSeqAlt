@@ -124,6 +124,7 @@ estimateDispersionsAlt <- function( dxd, BPPARAM = SerialParam(), verbose=TRUE )
     sizeFactors <- colData(dxd)$sizeFactor
     dispsAll <- bplapply( spMat, function(x, testableVectorZ, mmZ, sizeFactorsZ, verboseZ ){
         disps <- sapply( rownames(x), function(ex){
+            library(DEXSeqAlt)
             if( verboseZ ){
                 cat(sprintf("fitting %s\n", ex))
             }
@@ -184,6 +185,7 @@ testForDEUAlt <- function( dxd, reducedModel, fullModel, BPPARAM=SerialParam(), 
     names(rawDisps) <- rownames(dxd)
     cat(sprintf("testing using %s cores\n", bpnworkers(BPPARAM) ) )
     pvalAll <- bplapply( splitMat, function( mat, modelFrameZ, rawDispsZ, mmNullZ, mmFullZ, verboseZ ){
+        library(DEXSeqAlt)
         pvals <- sapply( rownames( mat ), function( ex ){
             if( verboseZ ){
                 cat( sprintf( "testing %s\n", ex ) )
