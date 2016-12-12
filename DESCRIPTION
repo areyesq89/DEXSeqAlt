@@ -1,17 +1,19 @@
 Package: DEXSeqAlt
-Version: 0.0.103
+Version: 0.0.104
 Title: Implementing DEXSeq testing without sharing information across exons
 Author: Alejandro Reyes <alejandro.reyes.ds@gmail.com>
 Maintainer: Alejandro Reyes <alejandro.reyes.ds@gmail.com>
 Imports:
-    statmod
+    statmod,
+    S4Vectors,
+    methods,
+    pasilla
 Depends:
     BiocParallel,
     SummarizedExperiment,
     GenomicRanges (>= 1.23.7),
-    DEXSeq, 
-    pasilla,
-    methods
+    DEXSeq,
+    DESeq2
 Suggests:
     BiocStyle,
     knitr

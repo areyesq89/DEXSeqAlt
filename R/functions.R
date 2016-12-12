@@ -11,6 +11,7 @@
 #' @import SummarizedExperiment
 #' @import BiocParallel
 #' @importFrom statmod glmnb.fit
+#' @importFrom utils read.delim
 #' @importFrom stats deviance dnbinom fitted.values model.matrix optimize p.adjust pchisq
 #' @importFrom utils data
 #' @export
@@ -22,8 +23,10 @@ generateExampleDxd <- function()
                pattern="fb.txt$",
                full.names=TRUE )
     flattenedfile = file.path( path, "extdata", "Dmel.BDGP5.25.62.DEXSeq.chr.gff")
-    data("pasillaDEXSeqDataSet")
-    sampleData <- as.data.frame( sampleAnnotation( dxd ) )
+    sampleData <- read.delim(
+        file.path( path, "extdata", "pasilla_sample_annotation.csv" ),
+        sep="," )[,c("file", "condition", "type")]
+    colnames(sampleData) <- c("sample", "condition", "type")
     names(countFiles) <- gsub(".txt", "", basename(countFiles))
     DEXSeqDataSetFromHTSeq(
          countfiles=countFiles[as.character(sampleData$sample)],
@@ -32,6 +35,13 @@ generateExampleDxd <- function()
          flattenedfile=flattenedfile )
 }
 
+rmDepCols <- function (m) 
+{
+    q <- qr(m)
+    if (q$rank < ncol(m)) 
+        m[, -q$pivot[(q$rank + 1):ncol(m)]]
+    else m
+}
 
 profileLogLikelihood <- function( disp, mm, y, muhat )
 {
@@ -109,7 +119,7 @@ estimateDispersionsAlt <- function( dxd, BPPARAM = SerialParam(), verbose=TRUE )
     if( any( is.na( colData(dxd)$sizeFactor ) ) ){
         stop("No size factors were found. Please run the function estimateSizeFactors first.")
     }
-    modelMatrix <- DEXSeq:::rmDepCols(
+    modelMatrix <- rmDepCols(
         model.matrix( design(dxd), colData(dxd) ) )
     thisExons <- colData(dxd)$exon == "this"
     countMatrix <- counts(dxd)
@@ -168,6 +178,7 @@ estimateDispersionsAlt <- function( dxd, BPPARAM = SerialParam(), verbose=TRUE )
 #' data( "pasillaDEXSeqDataSet", package="pasilla" )
 #' dxd <- estimateSizeFactors( dxd )
 #' dxd <- estimateDispersionsAlt( dxd )
+#' dxd <- testForDEUAlt( dxd, reducedModel=~sample+exon, fullModel=~sample+exon+condition:exon, verbose=FALSE )
 #' 
 #' @export
 #'
@@ -176,8 +187,8 @@ estimateDispersionsAlt <- function( dxd, BPPARAM = SerialParam(), verbose=TRUE )
 testForDEUAlt <- function( dxd, reducedModel, fullModel, BPPARAM=SerialParam(), verbose=TRUE ){
     modelFrame <- as.data.frame( colData( dxd ) )
     countMatrix <- counts( dxd )
-    mmNull <- DEXSeq:::rmDepCols( model.matrix( reducedModel, modelFrame ) )
-    mmFull <- DEXSeq:::rmDepCols( model.matrix( fullModel, modelFrame ) )
+    mmNull <- rmDepCols( model.matrix( reducedModel, modelFrame ) )
+    mmFull <- rmDepCols( model.matrix( fullModel, modelFrame ) )
     countMatrix <- countMatrix[ !is.na( mcols(dxd)$dispersion ),]
     toSplit <- sort( rep( seq_len( bpnworkers( BPPARAM ) ),
                          length.out=nrow( countMatrix ) ) )
@@ -220,4 +231,66 @@ testForDEUAlt <- function( dxd, reducedModel, fullModel, BPPARAM=SerialParam(), 
     mcols(mcols(dxd))[colnames(mcols(dxd)) %in% c("LRTPvalue", "qvalue"), "type"] <- "results"
     attr(dxd, "test") <- "LRT"
     dxd
+}
+
+
+#' Function to generate DEXSeqResults object
+#'
+#' Function to generate a DEXSeqDataSet object based on data from
+#' the pasilla package
+#'
+#' @param object A \code{DEXSeqDataSet} object.
+#'
+#' @return A \code{DEXSeqResults} object.
+#'
+#' @examples
+#' data( "pasillaDEXSeqDataSet", package="pasilla" )
+#' dxd <- estimateSizeFactors( dxd )
+#' dxd <- estimateDispersionsAlt( dxd, verbose=FALSE )
+#' dxd <- testForDEUAlt( dxd, reducedModel=~sample+exon, fullModel=~sample+exon+condition:exon, verbose=FALSE )
+#' dxd <- DEXSeqResultsAlt( dxd )
+#' 
+#' @importClassesFrom DEXSeq DEXSeqResults
+#' @importFrom methods new
+#' @importMethodsFrom DESeq2 design
+#' @importFrom S4Vectors DataFrame
+#'
+#' @export
+
+DEXSeqResultsAlt <- function( object )
+{
+    LRTresults <- DataFrame(
+        exonBaseMean = rowMeans(featureCounts(object, normalized = TRUE) ),
+        featureID = mcols(object)$featureID,
+        groupID = mcols(object)$groupID,
+        dispersion = mcols(object)$dispersion,
+        pvalue = mcols(object)$LRTPvalue,
+        padj = mcols(object)$qvalue )
+    mcols(LRTresults) <- DataFrame(type=NA, description=NA)
+    mcols(LRTresults)[colnames(LRTresults) %in% c("groupID", "featureID", "exonBaseMean"), "type"] <- "input"
+    mcols(LRTresults)[colnames(LRTresults) %in% "groupID", "description"] <- "group/gene identifier"
+    mcols(LRTresults)[colnames(LRTresults) %in% "featureID", "description"] <- "feature/exon identifier"
+    mcols(LRTresults)[colnames(LRTresults) %in% "exonBaseMean", "description"] <- "mean of the counts across samples in each feature/exon"
+    mcols(LRTresults)[colnames(LRTresults) %in% "dispersion", "type"] <- "intermediate"
+    mcols(LRTresults)[colnames(LRTresults) %in% "dispersion", "description"] <- "exon dispersion estimate"
+    mcols(LRTresults)[colnames(LRTresults) %in% "pvalue", "type"] <- "output"
+    mcols(LRTresults)[colnames(LRTresults) %in% "pvalue", "description"] <- "P-value of likelihood ratio test"
+    mcols(LRTresults)[colnames(LRTresults) %in% "padj", "type"] <- "output"
+    mcols(LRTresults)[colnames(LRTresults) %in% "padj", "description"] <- "BH adjusted p-values"
+    genomicData <- rowRanges(object)
+    mcols(genomicData) <- NULL
+    LRTresults$genomicData <- genomicData
+    LRTresults$countData <- featureCounts(object)
+    LRTresults$transcripts <- mcols(object)$transcripts
+    mcols(LRTresults)[colnames(LRTresults) %in% c("genomicData", 
+        "countData", "transcripts"), "type"] <- "input"
+    mcols(LRTresults)[colnames(LRTresults) %in% "genomicData", 
+        "description"] <- "GRanges object of the coordinates of the exon/feature"
+    mcols(LRTresults)[colnames(LRTresults) %in% "countData", 
+        "description"] <- "matrix of integer counts, of each column containing a sample"
+    mcols(LRTresults)[colnames(LRTresults) %in% "transcripts", 
+        "description"] <- "list of transcripts overlapping with the exon"
+    dxr <- new("DEXSeqResults", LRTresults, modelFrameBM = object@modelFrameBM, 
+        sampleData = sampleAnnotation(object), dispersionFunction = object@dispersionFunction)
+    dxr
 }

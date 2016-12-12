@@ -52,7 +52,7 @@ dxd <- testForDEUAlt(dxd, reducedModel=reducedModel, fullModel=fullModel, verbos
 The p-values and q-values can be found the following slot of the DEXSeqDataSet object
 
 ```{r results}
-mcols(dxd)
+dxr <- DEXSeqResultsAlt(dxd)
 ```
 
 

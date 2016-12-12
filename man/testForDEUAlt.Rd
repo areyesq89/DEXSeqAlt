@@ -32,6 +32,7 @@ the stamod glmnb.fit instead of the DESeq2 glm fitter.
 data( "pasillaDEXSeqDataSet", package="pasilla" )
 dxd <- estimateSizeFactors( dxd )
 dxd <- estimateDispersionsAlt( dxd )
+dxd <- testForDEUAlt( dxd, reducedModel=~sample+exon, fullModel=~sample+exon+condition:exon, verbose=FALSE )
 
 }
 
